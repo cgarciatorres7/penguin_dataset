@@ -5,13 +5,13 @@ import pickle
 
 PENGUIN_CLASS = {0: "Adelie", 1: "Chinstrap", 2: "Gentoo"}
 
-with open("model.pkl", "rb") as file:
+with open("./src/model2.pkl", "rb") as file:
     load_model= pickle.load(file)
 
 class Penguin(BaseModel):
-    culmen_lenght: float
-    culmen_depht: float
-    flipper_lenght: float
+    cl: float
+    cd: float
+    fl: float
 
 
 class PenguinPrediction(BaseModel):
@@ -21,10 +21,14 @@ class PenguinPrediction(BaseModel):
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    return {"message": "Hello World"}
 
-@app.get("/", response_model=PenguinPrediction)
+@app.get("/pred", response_model=Penguin)
 def get_prediction(cl: float, cd: float, fl:float):
-    pred = [0]
+    pred = load_model.predict([[cl, cd, fl]])[0]
+    print(pred)
     pred = PENGUIN_CLASS[pred]
 
     return {
