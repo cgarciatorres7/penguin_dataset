@@ -1,10 +1,13 @@
+from io import BytesIO
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import pickle
 import uvicorn
-import logging as logger
+import pandas as pd
+
 from typing import Any
+
 
 PENGUIN_CLASS = {0: "Adelie", 1: "Chinstrap", 2: "Gentoo"}
 
@@ -61,23 +64,27 @@ async def get_prediction(penguin: Penguin) -> Any:
         "prediction": pred_class
     }
 
-@app.post("/csv", response_model=StreamingResponse)
-async def get_predictions_from_csv(file: bytes = File(...)):
-    file_content = file.decode("utf-8").split("\n")
+
+@app.post("/csv")
+async def get_predictions_from_csv(upload_file: UploadFile) -> Any:
+    content = await upload_file.read()
+    # Assuming the file contains a list of items separated by newline characters
+    items = content.decode('utf-8').split('\n')
+
+    # Process the items
     predictions = []
-    for line in file_content:
-        if line:
-            cl, cd, fl = line.split(",")
-            pred = load_model.predict([[cl, cd, fl]])[0]
-            pred_class = PENGUIN_CLASS[pred]
-            predictions.append({
-                "features": {
-                    "cl": cl,
-                    "cd": cd,
-                    "fl": fl,
-                },
-                "prediction": pred_class
-            })
+    processed_items = [item.strip() for item in items if item.strip()]
+    for line in processed_items:
+        cl, cd, fl = line.split(",")
+        pred = load_model.predict([[cl, cd, fl]])[0]
+        pred_class = PENGUIN_CLASS[pred]
+        predictions.append(pred_class)
+
+    print(predictions)
+    # if you want to return as a json file
+    return {"result": predictions}
+
+    # if you want to return as a csv file
 
 
 if __name__ == "__main__":
